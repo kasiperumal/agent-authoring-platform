@@ -1,74 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Settings, Trash2, Play, Save, Terminal, Users, Link as LinkIcon, X, AlertCircle, CheckCircle, Bot, Wrench } from 'lucide-react';
-import {
-  Box,
-  Button,
-  Typography,
-  ThemeProvider,
-  createTheme,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Card,
-  CardContent,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Menu,
-  Paper,
-  SvgIcon,
-  CssBaseline
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#90caf9',
-    },
-    secondary: {
-      main: '#f48fb1',
-    },
-    background: {
-      default: '#1a202c',
-      paper: 'rgba(255, 255, 255, 0.1)',
-    },
-  },
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backdropFilter: 'blur(10px)',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        }
-      }
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          backgroundColor: '#2d3748',
-        }
-      }
-    }
-  }
-});
-
-const GlassmorphicCard = styled(Card)(({ theme }) => ({
-  backdropFilter: 'blur(12px)',
-  backgroundColor: 'rgba(255, 255, 255, 0.1) !important',
-  borderRadius: (theme.shape.borderRadius as number) * 2 || 16,
-  border: '1px solid rgba(255, 255, 255, 0.2)',
-  boxShadow: theme.shadows[3],
-  transition: 'all 0.2s ease-in-out',
-}));
+import { Plus, Settings, Trash2, Play, Save, Terminal, Users, User, Link as LinkIcon, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { MCPToolNode } from './components/MCPToolNode';
 
 interface Position {
   x: number;
@@ -76,11 +8,9 @@ interface Position {
 }
 
 interface ContextMenu {
-  mouseX: number;
-  mouseY: number;
-  agent?: Agent;
-  tool?: MCPAssociation;
-  toolAgent?: Agent;
+  x: number;
+  y: number;
+  agent: Agent;
 }
 
 interface Notification {
@@ -103,7 +33,6 @@ interface CanvasProps {
   selectedAgent: Agent | null;
   onSelectAgent: (agent: Agent) => void;
   onRightClick: (e: React.MouseEvent, agent: Agent) => void;
-  onToolRightClick: (e: React.MouseEvent, tool: MCPAssociation, agent: Agent) => void;
   onPositionChange: (agentId: string, position: Position) => void;
 }
 
@@ -394,72 +323,6 @@ const api = {
   deployAgent: (data: { agent_id: string }) => api.fetch('/deployments', { method: 'POST', body: JSON.stringify(data) }),
 };
 
-// Tool Node Component
-const ToolNode: React.FC<{
-  tool: MCPAssociation;
-  agentPosition: Position;
-  toolPosition: Position;
-  onRightClick: (e: React.MouseEvent, tool: MCPAssociation) => void;
-}> = ({ tool, agentPosition, toolPosition, onRightClick }) => {
-
-  return (
-    <g>
-      {/* Connection line from agent to tool */}
-      <line
-        x1={agentPosition.x} // From center of agent
-        y1={agentPosition.y + 45} // From bottom of agent node
-        x2={toolPosition.x} // To center of tool
-        y2={toolPosition.y - 30} // To top of tool node
-        stroke="rgba(144, 202, 249, 0.7)"
-        strokeWidth="2"
-        strokeDasharray="8,4"
-        markerEnd="url(#arrowhead)"
-      />
-      
-      <g transform={`translate(${toolPosition.x}, ${toolPosition.y})`}>
-        <foreignObject x="-70" y="-30" width="140" height="60">
-          <GlassmorphicCard
-            sx={{
-              width: '100%',
-              height: '100%',
-              borderWidth: 1,
-              borderColor: 'info.main',
-              backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              onRightClick(e, tool);
-            }}
-          >
-            <CardContent sx={{ p: 1.5, display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Box sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                mr: 1.5
-              }}>
-                <SvgIcon component={Wrench} sx={{ fontSize: 20, color: 'info.light' }} />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap variant="body2" fontWeight="bold" title={tool.mcp_tool.name}>
-                  {tool.mcp_tool.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  Tool
-                </Typography>
-              </Box>
-            </CardContent>
-          </GlassmorphicCard>
-        </foreignObject>
-      </g>
-    </g>
-  );
-};
-
 // Agent Node Component
 const AgentNode: React.FC<AgentNodeProps> = ({ agent, selected, onSelect, onRightClick, onPositionChange }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -499,25 +362,15 @@ const AgentNode: React.FC<AgentNodeProps> = ({ agent, selected, onSelect, onRigh
       };
     }
   }, [isDragging, dragOffset, handleMouseMove]);
-
-  const agentTypeStyles = {
-    single: {
-      borderColor: selected ? 'primary.main' : 'rgba(144, 202, 249, 0.5)',
-      iconColor: 'primary.light',
-    },
-    orchestrator: {
-      borderColor: selected ? 'secondary.main' : 'rgba(244, 143, 177, 0.5)',
-      iconColor: 'secondary.light',
-    },
-    worker: {
-      borderColor: selected ? 'success.main' : 'rgba(165, 214, 167, 0.5)',
-      iconColor: 'success.light',
-    },
+  
+  const iconMap = {
+    single: User,
+    orchestrator: Users,
+    worker: User
   };
-
-  const styles = agentTypeStyles[agent.agent_type];
-  const Icon = agent.agent_type === 'orchestrator' ? Users : Bot;
-
+  
+  const Icon = iconMap[agent.agent_type] || User;
+  
   return (
     <g
       transform={`translate(${agent.position_x}, ${agent.position_y})`}
@@ -528,47 +381,39 @@ const AgentNode: React.FC<AgentNodeProps> = ({ agent, selected, onSelect, onRigh
       }}
       style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
     >
-      <foreignObject x="-90" y="-45" width="180" height="90">
-        <GlassmorphicCard
-          sx={{
-            width: '100%',
-            height: '100%',
-            borderWidth: 2,
-            borderColor: styles.borderColor,
-          }}
-        >
-          <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', height: '100%' }}>
-            <Box sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              mr: 2
-            }}>
-              <SvgIcon component={Icon} sx={{ fontSize: 28, color: styles.iconColor }} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography noWrap variant="subtitle1" fontWeight="bold" title={agent.name}>
-                {agent.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Agent
-              </Typography>
-            </Box>
-          </CardContent>
-        </GlassmorphicCard>
+      <rect
+        x="-60"
+        y="-40"
+        width="120"
+        height="80"
+        rx="8"
+        fill={selected ? '#3b82f6' : '#1e293b'}
+        stroke={selected ? '#60a5fa' : '#475569'}
+        strokeWidth="2"
+      />
+      <foreignObject x="-60" y="-40" width="120" height="80">
+        <div className="flex flex-col items-center justify-center h-full text-white p-2">
+          <Icon size={24} className="mb-1" />
+          <div className="text-xs font-medium text-center truncate w-full">
+            {agent.name}
+          </div>
+          <div className="text-[10px] opacity-75">
+            {agent.agent_type}
+          </div>
+        </div>
       </foreignObject>
+      
+      {/* Remove MCP tool indicators since they'll be separate nodes */}
     </g>
   );
 };
 
   // Canvas Component
-const Canvas: React.FC<CanvasProps> = ({ agents, selectedAgent, onSelectAgent, onRightClick, onToolRightClick, onPositionChange }) => {
+const Canvas: React.FC<CanvasProps> = ({ agents, selectedAgent, onSelectAgent, onRightClick, onPositionChange }) => {
   const canvasRef = useRef<SVGSVGElement>(null);
+  const [selectedMCPTool, setSelectedMCPTool] = useState<MCPAssociation | null>(null);
 
+  // Calculate center of viewport on mount
   useEffect(() => {
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -576,59 +421,29 @@ const Canvas: React.FC<CanvasProps> = ({ agents, selectedAgent, onSelectAgent, o
         x: Math.floor(rect.width / 2),
         y: Math.floor(rect.height / 2)
       };
+      console.log('Canvas dimensions:', rect);
+      console.log('Calculated center:', center);
       window.localStorage.setItem('canvasCenter', JSON.stringify(center));
     }
   }, []);
 
   return (
-    <svg ref={canvasRef} style={{ width: '100%', height: '100%', background: 'linear-gradient(to bottom, #1a202c, #2d3748)' }}>
+    <svg className="w-full h-full" ref={canvasRef}>
       <defs>
         <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5" />
         </pattern>
-        {/* Arrow marker for connections */}
-        <marker
-          id="arrowhead"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
-          orient="auto"
-        >
-          <polygon
-            points="0 0, 10 3.5, 0 7"
-            fill="rgba(144, 202, 249, 0.7)"
-          />
-        </marker>
       </defs>
-      <rect width="100%" height="100%" fill="url(#grid)" />
-      {agents.map(agent => (
-        <g key={agent.agent_id}>
-          <AgentNode
-            agent={agent}
-            selected={selectedAgent?.agent_id === agent.agent_id}
-            onSelect={onSelectAgent}
-            onRightClick={onRightClick}
-            onPositionChange={onPositionChange}
-          />
-          {/* Render associated tools */}
-          {agent.mcp_tools?.map((mcpAssociation, index) => {
-            const toolPosition = {
-              x: agent.position_x + (index * 160), // Offset multiple tools horizontally
-              y: agent.position_y + 120 // Position below agent
-            };
-            
-            return (
-              <ToolNode
-                key={mcpAssociation.association_id}
-                tool={mcpAssociation}
-                agentPosition={{ x: agent.position_x, y: agent.position_y }}
-                toolPosition={toolPosition}
-                onRightClick={(e, tool) => onToolRightClick(e, tool, agent)}
-              />
-            );
-          })}
-        </g>
+      <rect width="100%" height="100%" fill="#111827" />
+      <rect width="100%" height="100%" fill="url(#grid)" />      {agents.map(agent => (
+        <AgentNode
+          key={agent.agent_id}
+          agent={agent}
+          selected={selectedAgent?.agent_id === agent.agent_id}
+          onSelect={onSelectAgent}
+          onRightClick={onRightClick}
+          onPositionChange={onPositionChange}
+        />
       ))}
     </svg>
   );
@@ -636,23 +451,23 @@ const Canvas: React.FC<CanvasProps> = ({ agents, selectedAgent, onSelectAgent, o
 
 // Side Panel Component
 const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  
   return (
-    <Drawer
-      anchor="right"
-      open={isOpen}
-      onClose={onClose}
-      sx={{ '& .MuiDrawer-paper': { width: 384, boxSizing: 'border-box' } }}
-    >
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6">{title}</Typography>
-        <IconButton onClick={onClose}>
-          <X />
-        </IconButton>
-      </Box>
-      <Box sx={{ p: 2, overflowY: 'auto' }}>
+    <div className="fixed right-0 top-0 h-full w-96 bg-gray-900 shadow-xl z-50 flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-gray-800 rounded"
+        >
+          <X size={20} className="text-gray-400" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
         {children}
-      </Box>
-    </Drawer>
+      </div>
+    </div>
   );
 };
 
@@ -871,16 +686,6 @@ export default function AgentPlatform() {
     }
   };
   
-  const removeMCPFromAgent = async (agentId: string, associationId: string) => {
-    try {
-      await api.removeMCPFromAgent(agentId, associationId);
-      showNotification('MCP tool removed from agent', 'success');
-      loadAgents();
-    } catch (error) {
-      showNotification('Error removing MCP tool', 'error');
-    }
-  };
-
   const deployAgent = async (agentId: string) => {
     try {
       const result = await api.deployAgent({ agent_id: agentId });
@@ -894,236 +699,249 @@ export default function AgentPlatform() {
   const handleRightClick = (e: React.MouseEvent, agent: Agent) => {
     e.preventDefault();
     setContextMenu({
-      mouseX: e.clientX - 2,
-      mouseY: e.clientY - 4,
+      x: e.clientX,
+      y: e.clientY,
       agent
     });
-  };
-
-  const handleToolRightClick = (e: React.MouseEvent, tool: MCPAssociation, agent: Agent) => {
-    e.preventDefault();
-    setContextMenu({
-      mouseX: e.clientX - 2,
-      mouseY: e.clientY - 4,
-      tool,
-      toolAgent: agent
-    });
-  };
-  
-  const closeContextMenu = () => {
+  };  const closeContextMenu = () => {
     setContextMenu(null);
   };
   
+  useEffect(() => {
+    document.addEventListener('click', closeContextMenu);
+    return () => document.removeEventListener('click', closeContextMenu);
+  }, []);
+  
   return (
-    <ThemeProvider theme={darkTheme}>
-      <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        {/* Header */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box sx={{
-                width: 32, height: 32,
-                background: 'linear-gradient(45deg, #90caf9, #f48fb1)',
-                borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <Users size={20} />
-              </Box>
-              <Typography variant="h6" noWrap>
-                Agent Authoring Platform
-              </Typography>
-            </Box>
-            <Box sx={{ flexGrow: 1 }} />
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="contained"
-                startIcon={<Plus />}
-                onClick={() => setShowAgentPanel(true)}
-              >
-                Single Agent
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Settings />}
-                onClick={() => setShowAdminPanel(true)}
-              >
-                Admin
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Terminal />}
-                onClick={() => setShowLogsPanel(!showLogsPanel)}
-              >
-                Logs
-              </Button>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        
-        {/* Main Content */}
-        <Box sx={{ flex: 1, position: 'relative' }}>
-          <Canvas
-            agents={agents}
-            selectedAgent={selectedAgent}
-            onSelectAgent={setSelectedAgent}
-            onRightClick={handleRightClick}
-            onToolRightClick={handleToolRightClick}
-            onPositionChange={updateAgentPosition}
-          />
-          
-          {/* Context Menu */}
-          <Menu
-            open={contextMenu !== null}
-            onClose={closeContextMenu}
-            anchorReference="anchorPosition"
-            anchorPosition={
-              contextMenu !== null
-                ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                : undefined
-            }
+    <div className="h-screen bg-gray-950 flex flex-col">
+      {/* Header */}
+      <div className="bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white">Agent Authoring Platform</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAgentPanel(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
           >
-            {contextMenu?.agent && (
-              <>
-                <MenuItem onClick={() => {
-                  setSelectedAgent(contextMenu.agent!);
-                  setShowMCPPanel(true);
-                  closeContextMenu();
-                }}>
-                  <ListItemIcon><LinkIcon size={16} /></ListItemIcon>
-                  <ListItemText>Add Tool</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={() => {
-                  deployAgent(contextMenu.agent!.agent_id);
-                  closeContextMenu();
-                }}>
-                  <ListItemIcon><Play size={16} /></ListItemIcon>
-                  <ListItemText>Deploy</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={() => {
-                  deleteAgent(contextMenu.agent!.agent_id);
-                  closeContextMenu();
-                }} sx={{ color: 'error.main' }}>
-                  <ListItemIcon><Trash2 size={16} color="inherit" /></ListItemIcon>
-                  <ListItemText>Delete</ListItemText>
-                </MenuItem>
-              </>
-            )}
-            {contextMenu?.tool && contextMenu?.toolAgent && (
-              <MenuItem onClick={() => {
-                removeMCPFromAgent(contextMenu.toolAgent!.agent_id, contextMenu.tool!.association_id);
-                closeContextMenu();
-              }} sx={{ color: 'error.main' }}>
-                <ListItemIcon><Trash2 size={16} color="inherit" /></ListItemIcon>
-                <ListItemText>Remove Tool</ListItemText>
-              </MenuItem>
-            )}
-          </Menu>
-        </Box>
+            <Plus size={16} />
+            Single Agent
+          </button>
+          <button
+            onClick={() => setShowAdminPanel(true)}
+            className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 flex items-center gap-2"
+          >
+            <Settings size={16} />
+            Admin
+          </button>
+          <button
+            onClick={() => setShowLogsPanel(!showLogsPanel)}
+            className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 flex items-center gap-2"
+          >
+            <Terminal size={16} />
+            Logs
+          </button>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 relative">
+        <Canvas
+          agents={agents}
+          selectedAgent={selectedAgent}
+          onSelectAgent={setSelectedAgent}
+          onRightClick={handleRightClick}
+          onPositionChange={updateAgentPosition}
+        />
         
-        {/* Agent Creation Panel */}
-        <SidePanel
-          isOpen={showAgentPanel}
-          onClose={() => setShowAgentPanel(false)}
-          title="Create Agent"
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              label="Agent Name"
+        {/* Context Menu */}
+        {contextMenu && (
+          <div
+            className="absolute bg-gray-800 rounded shadow-lg py-2 z-50"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              onClick={() => {
+                setSelectedAgent(contextMenu.agent);
+                setShowMCPPanel(true);
+                closeContextMenu();
+              }}
+              className="px-4 py-2 text-white hover:bg-gray-700 w-full text-left flex items-center gap-2"
+            >
+              <LinkIcon size={16} />
+              Add Tool
+            </button>
+            <button
+              onClick={() => {
+                deployAgent(contextMenu.agent.agent_id);
+                closeContextMenu();
+              }}
+              className="px-4 py-2 text-white hover:bg-gray-700 w-full text-left flex items-center gap-2"
+            >
+              <Play size={16} />
+              Deploy
+            </button>
+            <button
+              onClick={() => {
+                deleteAgent(contextMenu.agent.agent_id);
+                closeContextMenu();
+              }}
+              className="px-4 py-2 text-white hover:bg-gray-700 w-full text-left flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {/* Agent Creation Panel */}
+      <SidePanel
+        isOpen={showAgentPanel}
+        onClose={() => setShowAgentPanel(false)}
+        title="Create Agent"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Agent Name
+            </label>
+            <input
+              type="text"
               value={agentForm.name}
               onChange={(e) => setAgentForm({ ...agentForm, name: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+              placeholder="My Agent"
             />
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="System Instruction"
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              System Instruction
+            </label>
+            <textarea
               value={agentForm.instruction}
               onChange={(e) => setAgentForm({ ...agentForm, instruction: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white h-32"
+              placeholder="You are a helpful assistant..."
             />
-            <FormControl fullWidth>
-              <InputLabel>Model</InputLabel>
-              <Select
-                label="Model"
-                value={agentForm.model_name}
-                onChange={(e) => setAgentForm({ ...agentForm, model_name: e.target.value })}
-              >
-                <MenuItem value="gpt-4">GPT-4</MenuItem>
-                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
-                <MenuItem value="claude-3">Claude 3</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              label="Usecase ID"
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Model
+            </label>
+            <select
+              value={agentForm.model_name}
+              onChange={(e) => setAgentForm({ ...agentForm, model_name: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+            >
+              <option value="gpt-4">GPT-4</option>
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              <option value="claude-3">Claude 3</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Usecase ID
+            </label>
+            <input
+              type="text"
               value={agentForm.usecase_id}
               onChange={(e) => setAgentForm({ ...agentForm, usecase_id: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
             />
-            <TextField
-              fullWidth
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              API Key
+            </label>
+            <input
               type="password"
-              label="API Key"
               value={agentForm.api_key}
               onChange={(e) => setAgentForm({ ...agentForm, api_key: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
             />
-            <TextField
-              fullWidth
-              label="Consumer Key"
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Consumer Key
+            </label>
+            <input
+              type="text"
               value={agentForm.consumer_key}
               onChange={(e) => setAgentForm({ ...agentForm, consumer_key: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
             />
-            <TextField
-              fullWidth
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Consumer Secret
+            </label>
+            <input
               type="password"
-              label="Consumer Secret"
               value={agentForm.consumer_secret}
               onChange={(e) => setAgentForm({ ...agentForm, consumer_secret: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
             />
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<Save />}
-              onClick={createAgent}
-            >
-              Create Agent
-            </Button>
-          </Box>
-        </SidePanel>
-        
-        {/* MCP Association Panel */}
-        <SidePanel
-          isOpen={showMCPPanel}
-          onClose={() => setShowMCPPanel(false)}
-          title="Add MCP Tool"
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="subtitle1">Select MCP Tool</Typography>
-            <List>
+          </div>
+          
+          <button
+            onClick={createAgent}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            <Save size={16} />
+            Create Agent
+          </button>
+        </div>
+      </SidePanel>
+      
+      {/* MCP Association Panel */}
+      <SidePanel
+        isOpen={showMCPPanel}
+        onClose={() => setShowMCPPanel(false)}
+        title="Add MCP Tool"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select MCP Tool
+            </label>
+            <div className="space-y-2">
               {mcpTools.map(tool => (
-                <ListItem
+                <div
                   key={tool.id}
-                  onClick={() => setMCPAssociationForm({ selectedTool: tool, envValues: {} })}
-                  sx={{ 
-                    cursor: 'pointer',
-                    backgroundColor: mcpAssociationForm.selectedTool?.id === tool.id ? 'action.selected' : 'transparent',
-                    '&:hover': { backgroundColor: 'action.hover' }
-                  }}
+                  onClick={() => setMCPAssociationForm({ 
+                    selectedTool: tool, 
+                    envValues: {} 
+                  })}
+                  className={`p-3 rounded cursor-pointer border ${
+                    mcpAssociationForm.selectedTool?.id === tool.id
+                      ? 'bg-blue-900 border-blue-600'
+                      : 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                  }`}
                 >
-                  <ListItemText primary={tool.name} secondary={tool.description} />
-                </ListItem>
+                  <div className="font-medium text-white">{tool.name}</div>
+                  <div className="text-sm text-gray-400">{tool.description}</div>
+                </div>
               ))}
-            </List>
-            
-            {mcpAssociationForm.selectedTool && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography variant="subtitle1">
-                  Environment Variables for {mcpAssociationForm.selectedTool.name}
-                </Typography>
-                {mcpAssociationForm.selectedTool.env_variables.map(envVar => (
-                  <TextField
-                    key={envVar}
-                    fullWidth
-                    label={envVar}
+            </div>
+          </div>
+          
+          {mcpAssociationForm.selectedTool && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-gray-300">
+                Environment Variables for {mcpAssociationForm.selectedTool.name}
+              </h3>
+              {mcpAssociationForm.selectedTool.env_variables.map(envVar => (
+                <div key={envVar}>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    {envVar}
+                  </label>
+                  <input
+                    type="text"
                     value={mcpAssociationForm.envValues[envVar] || ''}
                     onChange={(e) => setMCPAssociationForm({
                       ...mcpAssociationForm,
@@ -1132,136 +950,178 @@ export default function AgentPlatform() {
                         [envVar]: e.target.value
                       }
                     })}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
                   />
-                ))}
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<Plus />}
-                  onClick={addMCPToAgent}
-                >
-                  Add Tool to Agent
-                </Button>
-              </Box>
-            )}
-          </Box>
-        </SidePanel>
-        
-        {/* Admin Panel */}
-        <SidePanel
-          isOpen={showAdminPanel}
-          onClose={() => setShowAdminPanel(false)}
-          title="Admin - MCP Tools"
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Create New MCP Tool</Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Tool Name"
+                </div>
+              ))}
+              
+              <button
+                onClick={addMCPToAgent}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                Add Tool to Agent
+              </button>
+            </div>
+          )}
+        </div>
+      </SidePanel>
+      
+      {/* Admin Panel */}
+      <SidePanel
+        isOpen={showAdminPanel}
+        onClose={() => setShowAdminPanel(false)}
+        title="Admin - MCP Tools"
+      >
+        <div className="space-y-4">
+          <div className="border border-gray-700 rounded p-4">
+            <h3 className="text-lg font-medium text-white mb-3">Add New MCP Tool</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Tool Name
+                </label>
+                <input
+                  type="text"
                   value={mcpForm.name}
                   onChange={(e) => setMCPForm({ ...mcpForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                  placeholder="My MCP Tool"
                 />
-                <TextField
-                  fullWidth
-                  label="Package Name"
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Package Name
+                </label>
+                <input
+                  type="text"
                   value={mcpForm.package_name}
                   onChange={(e) => setMCPForm({ ...mcpForm, package_name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                  placeholder="mcp-tool-package"
                 />
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Description"
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
                   value={mcpForm.description}
                   onChange={(e) => setMCPForm({ ...mcpForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                  placeholder="Tool description..."
                 />
-                <TextField
-                  fullWidth
-                  label="Environment Variables (comma-separated)"
-                  value={mcpForm.env_variables.join(',')}
-                  onChange={(e) => setMCPForm({ ...mcpForm, env_variables: e.target.value.split(',').map(s => s.trim()) })}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Environment Variables (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={mcpForm.env_variables.join(', ')}
+                  onChange={(e) => setMCPForm({ 
+                    ...mcpForm, 
+                    env_variables: e.target.value.split(',').map(v => v.trim()).filter(v => v)
+                  })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                  placeholder="API_KEY, SECRET_KEY, BASE_URL"
                 />
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={createMCPTool}
+              </div>
+              
+              <button
+                onClick={createMCPTool}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Create MCP Tool
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium text-white mb-3">Existing MCP Tools</h3>
+            <div className="space-y-2">
+              {mcpTools.map(tool => (
+                <div key={tool.id} className="bg-gray-800 p-3 rounded border border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-white">{tool.name}</div>
+                      <div className="text-sm text-gray-400">{tool.package_name}</div>
+                    </div>
+                    <button
+                      onClick={() => api.deleteMCPTool(tool.id).then(loadMCPTools)}
+                      className="p-1 hover:bg-gray-700 rounded"
+                    >
+                      <Trash2 size={16} className="text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </SidePanel>
+      
+      {/* Logs Panel */}
+      {showLogsPanel && (
+        <div className="fixed bottom-0 left-0 right-0 h-64 bg-gray-900 border-t border-gray-800">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-2 border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-white">Logs</h3>
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-xs text-gray-400">{isConnected ? 'Connected' : 'Disconnected'}</span>
+              </div>
+              <button
+                onClick={() => setShowLogsPanel(false)}
+                className="p-1 hover:bg-gray-800 rounded"
+              >
+                <X size={16} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 font-mono text-xs">
+              {logs.map((log, index) => (
+                <div
+                  key={index}
+                  className={`mb-1 ${
+                    log.level === 'error' ? 'text-red-400' : 
+                    log.level === 'warning' ? 'text-yellow-400' : 
+                    'text-gray-300'
+                  }`}
                 >
-                  Create MCP Tool
-                </Button>
-              </Box>
-            </Paper>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Existing MCP Tools</Typography>
-              <List>
-                {mcpTools.map(tool => (
-                  <ListItem
-                    key={tool.id}
-                    secondaryAction={
-                      <IconButton edge="end" aria-label="delete" onClick={() => api.deleteMCPTool(tool.id).then(loadMCPTools)}>
-                        <Trash2 />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText primary={tool.name} secondary={tool.package_name} />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          </Box>
-        </SidePanel>
-
-        {/* Logs Panel */}
-        <Drawer
-          anchor="bottom"
-          open={showLogsPanel}
-          onClose={() => setShowLogsPanel(false)}
-          sx={{ '& .MuiDrawer-paper': { maxHeight: '40vh' } }}
-        >
-          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h6">Logs</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: isConnected ? 'success.main' : 'error.main' }} />
-              <Typography variant="body2">{isConnected ? 'Connected' : 'Disconnected'}</Typography>
-              <IconButton onClick={() => setShowLogsPanel(false)} size="small">
-                <X />
-              </IconButton>
-            </Box>
-          </Box>
-          <Box sx={{ p: 2, overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.875rem' }}>
-            {logs.map((log, index) => (
-              <Box key={index} sx={{ display: 'flex', gap: 2, color: log.level === 'error' ? 'error.main' : 'text.secondary' }}>
-                <Typography component="span" variant="inherit" sx={{ flexShrink: 0 }}>{new Date(log.timestamp).toLocaleTimeString()}</Typography>
-                <Typography component="span" variant="inherit">{log.message}</Typography>
-              </Box>
-            ))}
-          </Box>
-        </Drawer>
-
-        {/* Notification */}
-        {notification && (
-          <Paper
-            elevation={6}
-            sx={{
-              position: 'fixed',
-              bottom: 20,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              backgroundColor: `${notification.type}.dark`,
-              color: 'white'
-            }}
-          >
-            {notification.type === 'success' && <CheckCircle />}
-            {notification.type === 'error' && <AlertCircle />}
-            <Typography>{notification.message}</Typography>
-          </Paper>
-        )}
-      </Box>
-    </ThemeProvider>
+                  <span className="text-gray-500">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                  {' '}
+                  <span className={`font-bold ${
+                    log.level === 'error' ? 'text-red-500' : 
+                    log.level === 'warning' ? 'text-yellow-500' : 
+                    'text-blue-500'
+                  }`}>
+                    [{log.level.toUpperCase()}]
+                  </span>
+                  {' '}
+                  {log.message}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 px-4 py-3 rounded shadow-lg flex items-center gap-2 ${
+          notification.type === 'error' ? 'bg-red-600' : 
+          notification.type === 'success' ? 'bg-green-600' : 
+          'bg-blue-600'
+        } text-white`}>
+          {notification.type === 'error' ? <AlertCircle size={20} /> :
+           notification.type === 'success' ? <CheckCircle size={20} /> :
+           <AlertCircle size={20} />}
+          {notification.message}
+        </div>
+      )}
+    </div>
   );
 }

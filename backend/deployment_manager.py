@@ -676,7 +676,7 @@ if __name__ == '__main__':
             "flask-cors",
             "aiohttp",
             # Add Google ADK package when available
-            # "google-genai-sdk",
+            # "google-adk",
         ]
         
         # Add MCP packages

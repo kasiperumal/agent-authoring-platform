@@ -498,7 +498,7 @@ async def deploy_agent_task(deployment_id: str, agent, db: Session):
         # Install required packages
         pip_path = f"{deployment_path}/venv/bin/pip" if os.name != 'nt' else f"{deployment_path}/venv/Scripts/pip"
         
-        packages = ["google-genai-sdk"]  # Base package for ADK
+        packages = ["google-adk"]  # Base package for Google ADK
         
         # Add MCP packages
         for assoc in agent.mcp_associations:
@@ -528,7 +528,7 @@ async def deploy_agent_task(deployment_id: str, agent, db: Session):
         db.commit()
 
 def generate_agent_script(agent):
-    # Generate Python script for agent based on ADK
+    # Generate Python script for agent based on Google ADK
     script = f'''
 import os
 from google.genai import Client, Model

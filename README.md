@@ -90,17 +90,13 @@ npx create-react-app . --template typescript
 
 3. **Install additional dependencies:**
 ```bash
-npm install lucide-react axios
+npm install @mui/material @emotion/react @emotion/styled lucide-react axios
 ```
 
 4. **Replace src/App.tsx with the React code from the second artifact**
 
-5. **Update src/index.css with Tailwind CSS:**
+5. **Update src/index.css:**
 ```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -111,26 +107,7 @@ body {
 }
 ```
 
-6. **Install and configure Tailwind CSS:**
-```bash
-npm install -D tailwindcss@3.3.0 postcss@8.4.31 autoprefixer@10.4.14
-NODE_ENV=development npx tailwindcss@3.3.0 init -p
-```
-
-7. **Update tailwind.config.js:**
-```javascript
-module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-```
-
-8. **Start the frontend:**
+6. **Start the frontend:**
 ```bash
 npm start
 ```
